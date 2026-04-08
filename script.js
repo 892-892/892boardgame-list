@@ -4,7 +4,6 @@ const REPO_OWNER = "892-892";
 const REPO_NAME = "boardgame-list";
 const FILE_PATH = "script.js";
 
-// ゲームデータ
 const games = [
   { "title": "Gem Blox", "id": 361413, "image": "https://cf.geekdo-images.com/Y34qQ_yZ_Bf5WvHnI0DqFA__itemrep/img/rNInl8_R-E-U_vV_fE_6_w=/fit-in/400x400/filters:strip_icc()/pic6899754.png" },
   { "title": "Bites", "id": 213327, "image": "https://cf.geekdo-images.com/E5uM6Gj-pL9T6A-N5Pz8Xg__itemrep/img/Y8Xv6jF_x_9O7p_v_E_6_w=/fit-in/400x400/filters:strip_icc()/pic4663784.jpg" },
@@ -21,7 +20,6 @@ const games = [
   { "title": "Ito", "id": 286208, "image": "https://cf.geekdo-images.com/a_v_E_6_w=/fit-in/400x400/filters:strip_icc()/pic4881261.jpg" }
 ];
 
-// --- 画面表示 ---
 function displayGames() {
   const list = document.getElementById('game-list');
   if (!list) return;
@@ -31,11 +29,11 @@ function displayGames() {
     const card = document.createElement('div');
     card.className = 'card';
     
-    // BGGの画像URLをプロキシ経由に変換する（httpを省くなどの処理を自動化）
-    const proxyImageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(game.image)}`;
+    // BGGの制限を回避する最も安定したプロキシを使用
+    const stableImage = `https://wsrv.nl/?url=${encodeURIComponent(game.image)}&w=300&h=300&fit=cover`;
     
     card.innerHTML = `
-      <img src="${proxyImageUrl}" alt="${game.title}">
+      <img src="${stableImage}" alt="${game.title}" loading="lazy">
       <div class="card-title">${game.title}</div>
     `;
     list.appendChild(card);
@@ -44,20 +42,22 @@ function displayGames() {
 
 window.onload = displayGames;
 
-// --- 検索・詳細取得・保存機能 ---
 async function searchBgg() {
   const query = document.getElementById('bgg-search-input').value;
   const resultsDiv = document.getElementById('search-results');
   if (!query) return;
-  resultsDiv.innerHTML = "Searching...";
+  resultsDiv.innerHTML = "Searching Board Game Database...";
+
   const proxy = "https://api.allorigins.win/get?url=";
   const searchUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
+
   try {
     const response = await fetch(proxy + encodeURIComponent(searchUrl));
     const data = await response.json();
     const parser = new DOMParser();
     const xml = parser.parseFromString(data.contents, "text/xml");
     const items = xml.getElementsByTagName("item");
+
     resultsDiv.innerHTML = ""; 
     for (let i = 0; i < Math.min(items.length, 5); i++) {
       const name = items[i].getElementsByTagName("name")[0].getAttribute("value");
@@ -65,15 +65,16 @@ async function searchBgg() {
       const btn = document.createElement('button');
       btn.style.display = "block";
       btn.style.margin = "5px";
-      btn.innerHTML = `Add: ${name}`;
+      btn.innerHTML = `Add to List: ${name}`;
       btn.onclick = () => getDetailAndSave(id, name);
       resultsDiv.appendChild(btn);
     }
-  } catch (e) { resultsDiv.innerHTML = "Error."; }
+  } catch (e) {
+    resultsDiv.innerHTML = "Search failed. Try again later.";
+  }
 }
 
 async function getDetailAndSave(id, title) {
-  if(!confirm(`Add ${title}?`)) return;
   const proxy = "https://api.allorigins.win/get?url=";
   const detailUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${id}`;
   try {
@@ -82,9 +83,8 @@ async function getDetailAndSave(id, title) {
     const parser = new DOMParser();
     const xml = parser.parseFromString(data.contents, "text/xml");
     const image = xml.getElementsByTagName("image")[0].textContent;
-    const newGame = { title, id: parseInt(id), image };
-    await saveToGithub(newGame);
-  } catch (e) { alert("Failed."); }
+    await saveToGithub({ title, id: parseInt(id), image });
+  } catch (e) { alert("Failed to get game details."); }
 }
 
 async function saveToGithub(newGame) {
@@ -92,8 +92,8 @@ async function saveToGithub(newGame) {
   const res = await fetch(url, { headers: { Authorization: `token ${GITHUB_TOKEN}` } });
   const fileData = await res.json();
   const content = decodeURIComponent(escape(atob(fileData.content)));
-  const newEntry = JSON.stringify(newGame, null, 2);
-  const updatedContent = content.replace("const games = [", `const games = [\n  ${newEntry},`);
+  const updatedContent = content.replace("const games = [", `const games = [\n  ${JSON.stringify(newGame, null, 2)},`);
+  
   await fetch(url, {
     method: "PUT",
     headers: { Authorization: `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
@@ -103,5 +103,6 @@ async function saveToGithub(newGame) {
       sha: fileData.sha
     })
   });
-  alert("Done! Refresh in 2 min.");
+  alert("Success! The list will update in about 2 minutes.");
+  location.reload();
 }
