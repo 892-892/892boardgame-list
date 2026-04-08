@@ -1,38 +1,44 @@
-// 管理したいゲームのBGG IDを並べるだけ！
-const bggIds = [13, 36218, 266192]; // カタン, ドミニオン, ウィングスパンのID
+// 表示したいゲームのリスト
+const games = [
+    {
+        title: "カタン",
+        players: "3-4人",
+        time: "60-90分",
+        image: "https://cf.geekdo-images.com/W3Bs9D67GbaSglSolsOn-g__itemrep/img/S9v6An2CS69N_3ZgnT8_X_idC2U=/fit-in/400x400/filters:strip_icc()/pic24193.jpg"
+    },
+    {
+        title: "ドミニオン",
+        players: "2-4人",
+        time: "30分",
+        image: "https://cf.geekdo-images.com/j6i_ka_Dq_SQU9G4S_1pGg__itemrep/img/Y5ZtOq8XfC0-v8U1Y5AAn-vWq_4=/fit-in/400x400/filters:strip_icc()/pic394356.jpg"
+    },
+    {
+        title: "ウィングスパン",
+        players: "1-5人",
+        time: "40-70分",
+        image: "https://cf.geekdo-images.com/yLZ_R_q_7U_E86fJ-DWInA__itemrep/img/7G05_qE09477S26YJmPjZcPy3qE=/fit-in/400x400/filters:strip_icc()/pic4458123.jpg"
+    }
+];
 
+// HTMLの「game-list」というIDがついた場所を探す
 const list = document.getElementById('game-list');
 
-// BGGから情報を取ってくる魔法の関数
-async function fetchGameData(id) {
-    // セキュリティ制限を回避するためのプロキシ（allorigins）を経由してBGG APIを叩く
-    const proxy = "https://api.allorigins.win/get?url=";
-    const bggApi = `https://boardgamegeek.com/xmlapi2/thing?id=${id}`;
-    
-    const response = await fetch(proxy + encodeURIComponent(bggApi));
-    const data = await response.json();
-    
-    // XML（BGGのデータ形式）を解析
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-    
-    const title = xmlDoc.getElementsByTagName("name")[0].getAttribute("value");
-    const image = xmlDoc.getElementsByTagName("image")[0].textContent;
-    const minPlayers = xmlDoc.getElementsByTagName("minplayers")[0].getAttribute("value");
-    const maxPlayers = xmlDoc.getElementsByTagName("maxplayers")[0].getAttribute("value");
-
-    return { title, image, players: `${minPlayers}-${maxPlayers}人` };
-}
-
-// 順番に表示する
-bggIds.forEach(async (id) => {
-    const game = await fetchGameData(id);
+// ゲームひとつずつに対して、カードを作って表示する
+games.forEach(game => {
+    // 1. カードの枠を作る
     const card = document.createElement('div');
     card.className = 'card';
+
+    // 2. カードの中身を組み立てる
     card.innerHTML = `
-        <img src="${game.image}" style="width:100%; border-radius:4px;">
-        <h3>${game.title}</h3>
-        <p>${game.players}</p>
+        <img src="${game.image}" alt="${game.title}">
+        <div class="card-content">
+            <h3 class="card-title">${game.title}</h3>
+            <p class="card-info">👥 ${game.players}</p>
+            <p class="card-info">⏱ ${game.time}</p>
+        </div>
     `;
+
+    // 3. 画面に追加する
     list.appendChild(card);
 });
