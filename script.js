@@ -1,10 +1,10 @@
 // --- 設定エリア ---
 const GITHUB_TOKEN = "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";
-const REPO_OWNER = "892-892"; 
-const REPO_NAME = "boardgame-list";
+const REPO_OWNER = "892-892"; // ← あなたのユーザー名を反映しました
+const REPO_NAME = "boardgame-list"; 
 const FILE_PATH = "script.js";
 
-// 最初から表示するデータ（ここは自動書き換えの対象になります）
+// この下の「const games = [...]」の中に自動で追加されていきます
 const games = [
   {
     "title": "Catan",
@@ -16,26 +16,27 @@ const games = [
 // --- 1. 画面にカードを表示する機能 ---
 const list = document.getElementById('game-list');
 function displayGames() {
-    list.innerHTML = ""; // 一旦クリア
+    if (!list) return;
+    list.innerHTML = "";
     games.forEach(game => {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-            <img src="${game.image}" alt="${game.title}">
+            <img src="${game.image}" alt="${game.title}" style="width:100%; height:150px; object-fit:cover;">
             <div class="card-content">
-                <h3 class="card-title">${game.title}</h3>
-                <p class="card-info">BGG ID: ${game.id}</p>
+                <h3 style="font-size:16px; margin:5px 0;">${game.title}</h3>
             </div>
         `;
         list.appendChild(card);
     });
 }
-displayGames(); // 起動時に実行
+displayGames();
 
 // --- 2. BGGで検索する機能 ---
 async function searchBgg() {
     const query = document.getElementById('bgg-search-input').value;
     const resultsDiv = document.getElementById('search-results');
+    if (!query) return;
     resultsDiv.innerHTML = "検索中...";
 
     const proxy = "https://api.allorigins.win/get?url=";
@@ -54,19 +55,22 @@ async function searchBgg() {
             const id = items[i].getAttribute("id");
             
             const btn = document.createElement('button');
-            btn.style.margin = "5px";
-            btn.innerHTML = `【追加】 ${name}`;
+            btn.style.display = "block";
+            btn.style.margin = "5px 0";
+            btn.style.padding = "10px";
+            btn.style.cursor = "pointer";
+            btn.innerHTML = `【追加】 ${name} (ID:${id})`;
             btn.onclick = () => getDetailAndSave(id, name);
             resultsDiv.appendChild(btn);
         }
     } catch (e) {
-        resultsDiv.innerHTML = "検索エラーが発生しました。";
+        resultsDiv.innerHTML = "検索エラー。時間を置いて試してください。";
     }
 }
 
-// --- 3. 詳細情報を取ってGitHubに保存する機能 ---
+// --- 3. BGGから詳細（画像）を取得してGitHubに保存する機能 ---
 async function getDetailAndSave(id, title) {
-    if(!confirm(`${title} をリストに追加してGitHubに保存しますか？`)) return;
+    if(!confirm(`${title} を追加しますか？`)) return;
 
     const proxy = "https://api.allorigins.win/get?url=";
     const detailUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${id}`;
@@ -76,35 +80,58 @@ async function getDetailAndSave(id, title) {
         const data = await response.json();
         const parser = new DOMParser();
         const xml = parser.parseFromString(data.contents, "text/xml");
-        const image = xml.getElementsByTagName("image")[0].textContent;
+        
+        let image = "";
+        const imgTags = xml.getElementsByTagName("image");
+        if (imgTags.length > 0) {
+            image = imgTags[0].textContent;
+        } else {
+            image = "https://via.placeholder.com/150?text=No+Image";
+        }
 
         const newGame = { title, id: parseInt(id), image };
         await saveToGithub(newGame);
     } catch (e) {
-        alert("詳細情報の取得に失敗しました。");
+        alert("情報の取得に失敗しました。");
     }
 }
 
 async function saveToGithub(newGame) {
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
 
-    // 現在のファイルを取得
-    const res = await fetch(url, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}` }
-    });
-    const fileData = await res.json();
-    const content = decodeURIComponent(escape(atob(fileData.content)));
+    try {
+        const res = await fetch(url, {
+            headers: { Authorization: `token ${GITHUB_TOKEN}` }
+        });
+        const fileData = await res.json();
+        
+        // ファイルの中身を解読
+        const content = decodeURIComponent(escape(atob(fileData.content)));
 
-    // データの配列を書き換え
-    const newEntry = JSON.stringify(newGame, null, 2);
-    const updatedContent = content.replace("const games = [", `const games = [\n  ${newEntry},`);
+        // 「const games = [」の直後にデータを差し込む
+        const newEntry = JSON.stringify(newGame, null, 2);
+        const updatedContent = content.replace("const games = [", `const games = [\n  ${newEntry},`);
 
-    // GitHubへ送信
-    const updateRes = await fetch(url, {
-        method: "PUT",
-        headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            message: `Add ${newGame.title}`,
+        // GitHubへ保存（コミット）
+        const updateRes = await fetch(url, {
+            method: "PUT",
+            headers: {
+                Authorization: `token ${GITHUB_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                message: `Add ${newGame.title}`,
+                content: btoa(unescape(encodeURIComponent(updatedContent))),
+                sha: fileData.sha
+            })
+        });
+
+        if (updateRes.ok) {
+            alert("保存成功！反映まで2〜3分待ってリロードしてください。");
+        } else {
+            alert("保存に失敗しました。設定を確認してください。");
+        }
+    } catch (e) {
+        alert("通信エラー。");
+    }
+}
