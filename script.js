@@ -1,8 +1,10 @@
+// --- 設定エリア ---
 const GITHUB_TOKEN = "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";
 const REPO_OWNER = "892-892"; 
 const REPO_NAME = "boardgame-list";
 const FILE_PATH = "script.js";
 
+// ゲームデータ
 const games = [
   { "title": "Gem Blox", "id": 361413, "image": "https://cf.geekdo-images.com/Y34qQ_yZ_Bf5WvHnI0DqFA__itemrep/img/rNInl8_R-E-U_vV_fE_6_w=/fit-in/400x400/filters:strip_icc()/pic6899754.png" },
   { "title": "Bites", "id": 213327, "image": "https://cf.geekdo-images.com/E5uM6Gj-pL9T6A-N5Pz8Xg__itemrep/img/Y8Xv6jF_x_9O7p_v_E_6_w=/fit-in/400x400/filters:strip_icc()/pic4663784.jpg" },
@@ -19,19 +21,29 @@ const games = [
   { "title": "Ito", "id": 286208, "image": "https://cf.geekdo-images.com/a_v_E_6_w=/fit-in/400x400/filters:strip_icc()/pic4881261.jpg" }
 ];
 
-const list = document.getElementById('game-list');
+// --- 画面表示 ---
 function displayGames() {
+  const list = document.getElementById('game-list');
   if (!list) return;
   list.innerHTML = "";
+  
   games.forEach(game => {
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `<img src="${game.image}" alt="${game.title}"><div class="card-title">${game.title}</div>`;
+    
+    // 画像タグに referrerPolicy="no-referrer" を追加することでBGGの制限を回避します
+    card.innerHTML = `
+      <img src="${game.image}" alt="${game.title}" referrerpolicy="no-referrer">
+      <div class="card-title">${game.title}</div>
+    `;
     list.appendChild(card);
   });
 }
-displayGames();
 
+// ページ読み込み完了時に実行
+window.onload = displayGames;
+
+// --- 検索機能以降は変更なし ---
 async function searchBgg() {
   const query = document.getElementById('bgg-search-input').value;
   const resultsDiv = document.getElementById('search-results');
