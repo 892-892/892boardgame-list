@@ -1,19 +1,5 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Board Game Collection</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <header>
-        <h1>My Board Games</h1>
-    </header>
-
-    <main id="game-list" class="container">
-        </main>
-
-    <script src="script.js"></script>
-</body>
-</html>
+<div class="search-box">
+    <input type="text" id="bgg-search-input" placeholder="ゲーム名を英語で入力...">
+    <button onclick="searchBgg()">BGGで検索</button>
+</div>
+<div id="search-results"></div>
