@@ -1,5 +1,25 @@
-<div class="search-box">
-    <input type="text" id="bgg-search-input" placeholder="ゲーム名を英語で入力...">
-    <button onclick="searchBgg()">BGGで検索</button>
-</div>
-<div id="search-results"></div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Board Game Collection</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>My Board Games</h1>
+        <div class="search-section" style="padding: 20px; background: #444;">
+            <input type="text" id="bgg-search-input" placeholder="ゲーム名を英語で入力...">
+            <button onclick="searchBgg()">BGGで検索</button>
+            <div id="search-results" style="margin-top: 10px; color: white;"></div>
+        </div>
+    </header>
+
+    <main id="game-list" class="container">
+        </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
