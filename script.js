@@ -31,19 +31,20 @@ function displayGames() {
     const card = document.createElement('div');
     card.className = 'card';
     
-    // 画像タグに referrerPolicy="no-referrer" を追加することでBGGの制限を回避します
+    // BGGの画像URLをプロキシ経由に変換する（httpを省くなどの処理を自動化）
+    const proxyImageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(game.image)}`;
+    
     card.innerHTML = `
-      <img src="${game.image}" alt="${game.title}" referrerpolicy="no-referrer">
+      <img src="${proxyImageUrl}" alt="${game.title}">
       <div class="card-title">${game.title}</div>
     `;
     list.appendChild(card);
   });
 }
 
-// ページ読み込み完了時に実行
 window.onload = displayGames;
 
-// --- 検索機能以降は変更なし ---
+// --- 検索・詳細取得・保存機能 ---
 async function searchBgg() {
   const query = document.getElementById('bgg-search-input').value;
   const resultsDiv = document.getElementById('search-results');
